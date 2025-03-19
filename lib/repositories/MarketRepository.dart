@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../apis/dio_client.dart';
 import '../apis/dio_exception.dart';
 import '../apis/response_cache_model.dart';
@@ -11,40 +13,50 @@ class MarketRepository{
 
   Future<ResponseCache<List<MarketDTO>>> getAll({bool refresh = false}) async {
     try {
-      // Make the API call to fetch data, optionally using cache
-      final response = await api.get(Urls.Markets, useCache: true, refresh: refresh);
+      // Make the API call
+      final response = await api.get(Urls.Markets, useCache: false, refresh: refresh);
+      print("========================== market =================================");
+      print(response.data);
 
-      // Checking the success status in the response data
-      if (!response.data["succeeded"]) {
-        // Throw a custom exception when the request is not successful
-        throw NotSuccessException.fromMessage(response.data["status"]["message"]);
+      // Check if 'data' exists and is a list
+      if (response.data != null && response.data["data"] is List) {
+        final items = (response.data["data"] as List)
+            .map((e) => MarketDTO.fromJson(e))
+            .toList();
+        print("Mapped items: $items"); // Log the mapped items to ensure proper mapping
+        return ResponseCache<List<MarketDTO>>(
+          isFromCache: refresh,
+          result: items,
+        );
       }
-
-      // Mapping the response data to a list of MarketDTO objects
-      final items = (response.data["data"] as List)
-          .map((e) => MarketDTO.fromJson(e))
-          .toList();
-
-      // Return the data wrapped in a ResponseCache object
-      return ResponseCache<List<MarketDTO>>(
-        isFromCache: refresh,
-        result: items,
-      );
-
+      // Check if 'data' is a map (i.e., a single market object)
+      else if (response.data != null && response.data["data"] is Map) {
+        final market = MarketDTO.fromJson(response.data["data"]);
+        print("Mapped market: $market");  // Log the single market mapping
+        return ResponseCache<List<MarketDTO>>(
+          isFromCache: refresh,
+          result: [market],
+        );
+      }
+      // Handle cases where 'data' is neither a list nor a map
+      else {
+        throw Exception("Unexpected response format: ${response.data}");
+      }
     } on DioException catch (e) {
-      // Handle DioException (new error handling)
+      // Handle DioException
       final errorMessage = DioExceptions.fromDioError(e).toString();
       print("DioException occurred: $errorMessage");
-      throw Exception(errorMessage); // Re-throw the exception with a descriptive message
-
+      throw Exception(errorMessage);
     } catch (ex) {
-      // Handle any other errors
+      // Catch all other exceptions
       print("General exception in getAll: $ex");
-      rethrow; // Propagate the error further
+      rethrow;
     }
   }
   Future<MarketDTO> add(Map<String, dynamic> data)async{
     try{
+      print("====== market submit repository ====================================");
+      print(jsonEncode(data));
       final response = await api.post(Urls.Markets,data: data, clearCacheAfterPost: true, useToken: true);
       if(!response.data["succeeded"]){
         throw NotSuccessException.fromMessage(response.data["status"]["message"]);

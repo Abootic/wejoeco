@@ -4,38 +4,31 @@ import '../apis/dio_client.dart';
 import '../apis/dio_exception.dart';
 import '../apis/response_cache_model.dart';
 import '../apis/urls.dart';
+import '../models/CustomerDTO.dart';
 import '../models/LoginDto.dart';
 import 'package:dio/dio.dart';
 
-import '../models/SupplierDTO.dart';
-class SupplierRepository {
+class CustomerRepository {
   final DioClient api;
-  SupplierRepository(this.api);
+  CustomerRepository(this.api);
 
   // Add method for login, passing user credentials data
-  Future<SupplierDTO> add(Map<String, dynamic> data) async {
+  Future<CustomerDTO> add(Map<String, dynamic> data) async {
     try {
+      print("customerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
+      print(jsonEncode(data));
+      // Perform POST request using the DioClient
+      print("url is ${Urls.Customers}");
 
 
-
-      Map<String, dynamic> data1 = {
-        'code': data["code"],  // This is correct
-        'market_id': data["market_id"],  // Access market_id correctly
-        'user_dto': {
-          'username': data["user_dto"]["username"],  // Access user_dto and then username
-          'email': data["user_dto"]["email"],  // Access user_dto and then email
-          'user_type': data["user_dto"]["user_type"],  // Access user_type from user_dto
-          'password': data["user_dto"]["password"],  // Access password from user_dto
-        }
-      };
       final response = await api.post(
-          Urls.Suppliers,
-          data: data1,
+          Urls.Customers,
+          data: data,
           clearCacheAfterPost: true,
           useToken: false
       );
 
-      print("Response of supplier creation: $response");
+      print("Response of Customer creation: $response");
 
       // Check if the response succeeded
       bool succeeded = response.data["succeeded"] ?? false; // Default to false if null
@@ -47,7 +40,7 @@ class SupplierRepository {
       }
 
       // Parse the successful response to SupplierDTO model
-      final item = SupplierDTO.fromJson(response.data["data"]);
+      final item = CustomerDTO.fromJson(response.data["data"]);
       return item;
 
     } on DioError catch (e) {
@@ -66,7 +59,7 @@ class SupplierRepository {
     }
   }
 
-  Future<List<SupplierDTO>> getAll({bool refresh = false}) async {
+  Future<List<CustomerDTO>> getAll({bool refresh = false}) async {
     print("==== refresh in getAll colleges: ${refresh} ==========");
     try {
       final response = await api.get(
@@ -80,7 +73,7 @@ class SupplierRepository {
 
       // Map the response data to SupplierDTO list
       final items = (response.data["data"] as List)
-          .map((e) => SupplierDTO.fromJson(e))
+          .map((e) => CustomerDTO.fromJson(e))
           .toList();
 
       return items; // Return the list directly, without ResponseCache
@@ -93,10 +86,9 @@ class SupplierRepository {
   }
 
 
-  Future<SupplierDTO> getById(int id, {bool refresh = false}) async {
+  Future<CustomerDTO> getById(int id, {bool refresh = false}) async {
     try {
-      print("==============================================================================");
-      print("supplier getById repository is ${id}");
+      print("supplier getById is ${id}");
 
       // Make the API call
       final response = await api.get("${Urls.Get_Supplier_by_UserId}$id", useCache: false, refresh: refresh);
@@ -113,7 +105,7 @@ class SupplierRepository {
       }
 
       // Safely extract the data and convert it into SupplierDTO
-      final item = SupplierDTO.fromJson(response.data["data"]);
+      final item = CustomerDTO.fromJson(response.data["data"]);
       return item;
 
     } on DioError catch (e) {

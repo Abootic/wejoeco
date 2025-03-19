@@ -1,11 +1,10 @@
+import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/MarketDTO.dart';
 import '../repositories/MarketRepository.dart';
 import '../utilities/state_types.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Define StateTypes for MarketState
-
-
+// Market Bloc to handle events
 class MarketBloc extends Bloc<MarketsEvent, MarketState> {
   final MarketRepository repository;
 
@@ -14,7 +13,6 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
     on<LoadData>(_onLoadData);
   }
 
-  // Handle the submit event
   Future<void> _onSubmit(Submit event, Emitter<MarketState> emit) async {
     emit(state.copyWith(
       currentState: StateTypes.submitting,
@@ -23,15 +21,18 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
 
     try {
       final item = await repository.add(event.model);
-      print("====== in submit, result: ${item.id}");
+      print("Market added with id: ${item.id}");
+
+      final updatedItems = List<MarketDTO>.from(state.items)..add(item);
+      print("Updated items: ${updatedItems.length}");
 
       emit(state.copyWith(
         currentState: StateTypes.submitted,
         error: null,
-        model: item,
+        items: updatedItems,
       ));
-    } catch (e) {
-      print("============ EXP in submit: ${e.toString()} ========");
+
+   } catch (e) {
       emit(state.copyWith(
         currentState: StateTypes.error,
         error: e.toString(),
@@ -39,7 +40,6 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
     }
   }
 
-  // Handle the load data event
   Future<void> _onLoadData(LoadData event, Emitter<MarketState> emit) async {
     emit(state.copyWith(
       currentState: StateTypes.loading,
@@ -48,8 +48,6 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
 
     try {
       final items = await repository.getAll(refresh: event.forceRefresh);
-      print("========= in bloc get all, count: ${items.result.length} ======");
-
       emit(state.copyWith(
         currentState: StateTypes.loaded,
         error: null,
@@ -57,7 +55,6 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
         isFromCache: items.isFromCache,
       ));
     } catch (e) {
-      print("=========EXP in bloc get all, count: ${e.toString()} ======");
       emit(state.copyWith(
         currentState: StateTypes.error,
         error: e.toString(),
@@ -65,7 +62,7 @@ class MarketBloc extends Bloc<MarketsEvent, MarketState> {
     }
   }
 }
-
+// MarketState class to hold the state of markets and other necessary data
 class MarketState {
   final StateTypes currentState;
   final String? error;
@@ -81,6 +78,7 @@ class MarketState {
     this.model,
   });
 
+  // Helper method to copy state with changes
   MarketState copyWith({
     StateTypes? currentState,
     String? error,
@@ -98,6 +96,7 @@ class MarketState {
   }
 }
 
+// Abstract class for events
 abstract class MarketsEvent {}
 
 class Submit extends MarketsEvent {

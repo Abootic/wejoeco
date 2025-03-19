@@ -19,6 +19,9 @@ class Urls {
   static const String Markets = "/markets/";
   static const String Suppliers = "/suppliers/";
   static const String Get_Supplier_by_UserId =Suppliers+ "get_supplier_by_UserId/";
+  static const String Customers = "/customers/";
+  static const String Products = "/products/";
+
   static const String Useraccess = "/useraccess";
   static const String Login = Useraccess + "/login/";
 
