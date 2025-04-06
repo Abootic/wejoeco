@@ -63,28 +63,33 @@ class CustomerRepository {
     print("==== refresh in getAll colleges: ${refresh} ==========");
     try {
       final response = await api.get(
-        Urls.Suppliers,
+        Urls.Customers,
         useCache: false, // Disable caching
       );
 
-      if (!response.data["succeeded"]) {
-        throw NotSuccessException.fromMessage(response.data["status"]["message"]);
+      // Print the raw response data for debugging
+      print("Response from API: ${jsonEncode(response.data)}");
+
+      if (response.data == null || !response.data["succeeded"]) {
+        throw NotSuccessException.fromMessage(response.data?["status"]?["message"] ?? "Failed to fetch data");
       }
 
-      // Map the response data to SupplierDTO list
+      // Assuming the correct format of data is in the "data" field as a list
       final items = (response.data["data"] as List)
           .map((e) => CustomerDTO.fromJson(e))
           .toList();
 
-      return items; // Return the list directly, without ResponseCache
+      // Print the parsed customer data for debugging
+      print("Parsed items: ${jsonEncode(items)}");
+
+      return items; // Return the list of customers
     } on DioError catch (e) {
       final errorMessage = DioExceptions.fromDioError(e).toString();
-      throw errorMessage;
+      throw errorMessage; // Handle DioError
     } on Exception catch (ex) {
-      rethrow;
+      rethrow; // Rethrow any other exceptions
     }
   }
-
 
   Future<CustomerDTO> getById(int id, {bool refresh = false}) async {
     try {

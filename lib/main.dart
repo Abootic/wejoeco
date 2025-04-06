@@ -1,31 +1,40 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wejoeco/repositories/CustomerRepository.dart';
-import 'package:wejoeco/repositories/LoginRepository.dart';
-import 'package:wejoeco/repositories/MarketRepository.dart';
-import 'package:wejoeco/repositories/ProductRepository.dart';
-import 'package:wejoeco/repositories/SharedRepository.dart';
-import 'package:wejoeco/repositories/SupplierRepository.dart';
-import 'package:wejoeco/utilities/routes.dart';
-import 'package:wejoeco/utilities/service_locator.dart';
-import 'package:wejoeco/utilities/state_types.dart';
 import 'package:get_it/get_it.dart';
-import 'package:wejoeco/views/client/DashBordScreen.dart';
-import 'package:wejoeco/views/client/LoginScreen.dart';
-import 'package:wejoeco/views/client/ProfileScreen.dart'; // Include the ProfileScreen for navigation
+import 'package:wejoeco/repositories/SupplierProfitRepository.dart';
+
+import 'bloc/PercentageBloc.dart';
+import 'bloc/SupplierProfitBloc.dart';
+import 'repositories/CustomerRepository.dart';
+import 'repositories/LoginRepository.dart';
+import 'repositories/MarketRepository.dart';
+import 'repositories/OrderRepository.dart';
+import 'repositories/ProductRepository.dart';
+import 'repositories/SharedRepository.dart';
+import 'repositories/SupplierRepository.dart';
+import 'repositories/PercentageRepository.dart';
+
+import 'utilities/routes.dart';
+import 'utilities/service_locator.dart';
+import 'utilities/state_types.dart';
+
+import 'views/client/DashBordScreen.dart';
+import 'views/client/LoginScreen.dart';
+import 'views/client/ProfileScreen.dart';
 
 import 'bloc/CustomerBloc.dart';
 import 'bloc/LoginBloc.dart';
 import 'apis/http_override.dart';
 import 'bloc/MarketBloc.dart';
+import 'bloc/OrderBloc.dart';
 import 'bloc/ProductBloc.dart';
 import 'bloc/SupplierBloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
-  await setupDI();
+  await setupDI(); // Ensure dependency injection setup is completed before running app
   runApp(const MyApp());
 }
 
@@ -39,8 +48,7 @@ class MyApp extends StatelessWidget {
         BlocProvider<LoginBloc>(
           create: (_) {
             final bloc = LoginBloc(repository: GetIt.instance<LoginRepository>());
-            print("LoginBloc created in MyApp: ${bloc.hashCode}");
-            bloc.add(CheckLoginStatusEvent()); // Check status on creation
+            bloc.add(CheckLoginStatusEvent()); // Dispatch event on creation
             return bloc;
           },
         ),
@@ -56,35 +64,45 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProductBloc>(
           create: (_) => ProductBloc(repository: GetIt.instance<ProductRepository>()),
         ),
+        BlocProvider<OrderBloc>(
+          create: (_) => OrderBloc(repository: GetIt.instance<OrderRepository>()),
+        ), BlocProvider<PercentageBloc>(
+          create: (_) => PercentageBloc(repository: GetIt.instance<PercentageRepository>()),
+        ),BlocProvider<SupplierProfitBloc>(
+          create: (_) => SupplierProfitBloc(repository: GetIt.instance<SupplierProfitRepository>()),
+        ),
       ],
       child: MaterialApp(
         title: 'Flutter Demo',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         ),
-        onGenerateRoute: AppRoutes.generateRoute, // Use the generateRoute method
-        initialRoute: Routes.profile, // Set the correct initial route
+        onGenerateRoute: AppRoutes.generateRoute,
+        initialRoute: Routes.home,
       ),
     );
   }
 }
 
-class _HomeScreen extends StatelessWidget {
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  Future<String?> _getStoredToken() async {
+    var shared = GetIt.instance<SharedRepository>();
+    return await shared.getData("accessToken");
+  }
+
   @override
   Widget build(BuildContext context) {
     final loginBloc = context.read<LoginBloc>();
-    print("HomeScreen using LoginBloc: ${loginBloc.hashCode}");
 
     return BlocConsumer<LoginBloc, LoginState>(
       listener: (context, state) {
-        print("BlocConsumer listener triggered with state: currentState = ${state.currentState}, authResponse = ${state.authResponse}");
         if (state.currentState == StateTypes.init && state.authResponse == null) {
-          print("Condition met, navigating to LoginScreen from BlocConsumer");
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (Route<dynamic> route) => false,
+                (route) => false,
           );
-          print("Navigation to LoginScreen dispatched from BlocConsumer");
         }
       },
       builder: (context, state) {
@@ -96,7 +114,6 @@ class _HomeScreen extends StatelessWidget {
             }
 
             final token = snapshot.data;
-            print("FutureBuilder: token = $token, authResponse = ${loginBloc.state.authResponse}");
             if (token != null && token.isNotEmpty && loginBloc.state.authResponse != null) {
               return const DashBoardScreen();
             } else {
@@ -106,10 +123,5 @@ class _HomeScreen extends StatelessWidget {
         );
       },
     );
-  }
-
-  Future<String?> _getStoredToken() async {
-    var shared = GetIt.instance<SharedRepository>();
-    return await shared.getData("accessToken");
   }
 }

@@ -1,47 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../bloc/CustomerBloc.dart';
-import '../../models/CustomerDTO.dart';
+import '../../bloc/SupplierBloc.dart';
+import '../../models/SupplierDTO.dart';
 import '../../utilities/state_types.dart';
 import '../wedgetHelper/app_colors.dart';
 import '../wedgetHelper/app_styles.dart';
 
-class CustomerScreen extends StatelessWidget {
+class SupplierScreen extends StatefulWidget {
+  const SupplierScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return CustomerScreenBody();
-  }
+  State<SupplierScreen> createState() => _SupplierScreenState();
 }
 
-class CustomerScreenBody extends StatefulWidget {
-  @override
-  _CustomerScreenBodyState createState() => _CustomerScreenBodyState();
-}
-
-class _CustomerScreenBodyState extends State<CustomerScreenBody> {
+class _SupplierScreenState extends State<SupplierScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  String _searchType = 'id';
-  List<CustomerDTO> _filteredCustomers = [];
+  String _searchType = 'id'; // 'id' or 'code'
+  List<SupplierDTO> _filteredSuppliers = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CustomersBloc>().add(LoadData());
+      context.read<SupplierBloc>().add(LoadData());
     });
   }
 
-  void _searchCustomer() {
+  void _searchSupplier() {
     final searchQuery = _searchController.text.trim();
     if (searchQuery.isEmpty) {
-      _showAllCustomers();
+      // Reset to show all suppliers when search is empty
+      _showAllSuppliers();
       return;
     }
 
-    final state = context.read<CustomersBloc>().state;
+    final state = context.read<SupplierBloc>().state;
     if (state.currentState != StateTypes.loaded || state.data == null) {
-      _showError('No customer data available');
+      _showError('No supplier data available');
       return;
     }
 
@@ -49,12 +45,12 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
       _isSearching = true;
       if (_searchType == 'id') {
         final searchId = int.tryParse(searchQuery);
-        _filteredCustomers = searchId != null
-            ? state.data!.where((customer) => customer.id == searchId).toList()
+        _filteredSuppliers = searchId != null
+            ? state.data!.where((supplier) => supplier.id == searchId).toList()
             : [];
       } else {
-        _filteredCustomers = state.data!
-            .where((customer) => customer.code
+        _filteredSuppliers = state.data!
+            .where((supplier) => supplier.code
             ?.toLowerCase()
             .contains(searchQuery.toLowerCase()) ?? false)
             .toList();
@@ -62,10 +58,10 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
     });
   }
 
-  void _showAllCustomers() {
+  void _showAllSuppliers() {
     setState(() {
       _isSearching = false;
-      _filteredCustomers = [];
+      _filteredSuppliers = [];
     });
   }
 
@@ -78,7 +74,7 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
     );
   }
 
-  Widget _buildCustomerItem(CustomerDTO customer) {
+  Widget _buildSupplierItem(SupplierDTO supplier) {
     return Card(
       elevation: 8,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -86,14 +82,14 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         title: Text(
-          customer.code ?? 'Unnamed Customer',
+          supplier.code ?? 'Unnamed Supplier',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ID: ${customer.id}'),
-            if (customer.code != null) Text('Code: ${customer.code}'),
+            Text('ID: ${supplier.id}'),
+            if (supplier.code != null) Text('Code: ${supplier.code}'),
           ],
         ),
         trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
@@ -106,7 +102,7 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Customer Management',
+          'Supplier Management',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -116,19 +112,20 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
           if (_isSearching)
             IconButton(
               icon: const Icon(Icons.list),
-              onPressed: _showAllCustomers,
-              tooltip: 'Show all customers',
+              onPressed: _showAllSuppliers,
+              tooltip: 'Show all suppliers',
             ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
+        child: SingleChildScrollView( // Allow scrolling for the entire screen
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Search Section
               const Text(
-                'Search Customer',
+                'Search Supplier',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -142,6 +139,7 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
                         labelStyle: const TextStyle(color: AppColors.primary),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppColors.primary),
                         ),
                       ),
                     ),
@@ -150,68 +148,100 @@ class _CustomerScreenBodyState extends State<CustomerScreenBody> {
                   DropdownButton<String>(
                     value: _searchType,
                     items: const [
-                      DropdownMenuItem(value: 'id', child: Text('By ID')),
-                      DropdownMenuItem(value: 'code', child: Text('By Code')),
+                      DropdownMenuItem(
+                        value: 'id',
+                        child: Text('By ID'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'code',
+                        child: Text('By Code'),
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {
                         _searchType = value!;
                       });
                     },
+                    dropdownColor: AppColors.primary,
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: _searchCustomer,
+                    onPressed: _searchSupplier,
                     child: const Text('Search'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
                   ),
                 ],
               ),
               const Divider(height: 40),
+
+              // Supplier List Section
               Text(
-                _isSearching ? 'Search Results' : 'All Customers',
+                _isSearching ? 'Search Results' : 'All Suppliers',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              BlocBuilder<CustomersBloc, CustomerState>(
+              // ListView will be inside an Expanded to allow scrolling
+              BlocBuilder<SupplierBloc, SupplierState>(
                 builder: (context, state) {
                   if (state.currentState == StateTypes.loading) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (state.currentState == StateTypes.error) {
                     return Center(
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Error: ${state.error}',
-                              style: const TextStyle(color: Colors.red)),
+                          Text(
+                            'Error: ${state.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: () => context.read<CustomersBloc>().add(LoadData()),
+                            onPressed: () => context.read<SupplierBloc>().add(LoadData()),
                             child: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else if (state.currentState == StateTypes.empty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('No suppliers found'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => context.read<SupplierBloc>().add(LoadData()),
+                            child: const Text('Refresh'),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
                           ),
                         ],
                       ),
                     );
                   } else if (state.currentState == StateTypes.loaded) {
-                    final customersToDisplay = _isSearching ? _filteredCustomers : state.data!;
+                    final suppliersToDisplay = _isSearching ? _filteredSuppliers : state.data!;
 
-                    if (customersToDisplay.isEmpty) {
+                    if (suppliersToDisplay.isEmpty) {
                       return Center(
                         child: Text(
-                          _isSearching ? 'No matching customers found' : 'No customers available',
+                          _isSearching ? 'No matching suppliers found' : 'No suppliers available',
                           style: const TextStyle(fontSize: 16),
                         ),
                       );
                     }
 
                     return ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: customersToDisplay.length,
+                      shrinkWrap: true, // Allow ListView to take only as much space as needed
+                      physics: NeverScrollableScrollPhysics(), // Disable ListView scrolling to allow scrollable parent
+                      itemCount: suppliersToDisplay.length,
                       itemBuilder: (context, index) {
-                        // Ensuring each customer card has a unique key to avoid conflicts.
-                        return _buildCustomerItem(customersToDisplay[index]);
+                        return _buildSupplierItem(suppliersToDisplay[index]);
                       },
                     );
                   }

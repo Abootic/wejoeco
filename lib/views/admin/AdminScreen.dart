@@ -1,9 +1,11 @@
 
 import 'package:flutter/material.dart';
 
+
 import 'CustomerScreen.dart';
 import 'MarketScreen.dart';
-import 'SupplierScreen.dart';
+
+import 'SupplierScreenAdmin.dart';
 import 'UsersScreen.dart';
 
 class AdminScreen extends StatelessWidget {
@@ -23,7 +25,7 @@ class AdminScreen extends StatelessWidget {
       body: ListView(
         children: [
           _buildListTile(context, 'Users', UsersScreen()),
-          _buildListTile(context, 'Customer', CustomerScreen()),
+          _buildListTile(context, 'Customer', CustomerScreenBody()),
           _buildListTile(context, 'Supplier', SupplierScreen()),
           _buildListTile(context, 'Market', MarketScreen()),
         ],

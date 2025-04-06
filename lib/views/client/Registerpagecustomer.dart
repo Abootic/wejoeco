@@ -1,11 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../../bloc/CustomerBloc.dart';
 import '../../models/CustomerDTO.dart';
 import '../../models/UserDTO.dart';
 import '../../utilities/state_types.dart';
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
 
 
 class Registerpagecustomer extends StatefulWidget {
@@ -17,8 +18,6 @@ class Registerpagecustomer extends StatefulWidget {
 
 class _RegisterpagecustomerState extends State<Registerpagecustomer> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  // Controllers for input fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -27,16 +26,14 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocConsumer<CustomersBloc, SupplierState>(
+      body: BlocConsumer<CustomersBloc, CustomerState>(
         listener: (context, state) {
           if (state.currentState == StateTypes.submitted) {
-            // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Customer Registered Successfully!")),
             );
-            Navigator.pop(context); // Navigate back after success
+            Navigator.pop(context);
           } else if (state.currentState == StateTypes.error) {
-            // Show error message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Error: ${state.error}")),
             );
@@ -46,7 +43,7 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
           return Form(
             key: _formKey,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: AppStyles.padding),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -84,12 +81,7 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
+      decoration: AppStyles.inputDecoration(label),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return "Please enter $label";
@@ -99,7 +91,7 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
     );
   }
 
-  Widget _buildButton(SupplierState state) {
+  Widget _buildButton(CustomerState state) {
     return GestureDetector(
       onTap: state.currentState == StateTypes.submitting ? null : _onRegister,
       child: Container(
@@ -107,12 +99,12 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
         width: double.infinity,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.black,
+          borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+          color: AppColors.primary,
         ),
         child: state.currentState == StateTypes.submitting
-            ? CircularProgressIndicator(color: Colors.white)
-            : Text("Register", style: TextStyle(color: Colors.white, fontSize: 20)),
+            ? CircularProgressIndicator(color: AppColors.buttonText)
+            : Text("Register", style: TextStyle(color: AppColors.buttonText, fontSize: 20)),
       ),
     );
   }
@@ -121,10 +113,10 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
     return RichText(
       text: TextSpan(
         children: [
-          TextSpan(text: "Already have an account? ", style: TextStyle(color: Colors.black)),
+          TextSpan(text: "Already have an account? ", style: TextStyle(color: AppColors.text)),
           TextSpan(
             text: "Login here",
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
             recognizer: TapGestureRecognizer()..onTap = () => Navigator.pop(context),
           ),
         ],
@@ -136,7 +128,6 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
     if (_formKey.currentState!.validate()) {
       final customersBloc = context.read<CustomersBloc>();
 
-      // Create UserDTO for customer
       UserDTO userDTO = UserDTO(
         username: _nameController.text,
         email: _emailController.text,
@@ -144,14 +135,12 @@ class _RegisterpagecustomerState extends State<Registerpagecustomer> {
         password: _passwordController.text,
       );
 
-      // Create CustomerDTO
       CustomerDTO customerDTO = CustomerDTO(
         code: "ss",
         phoneNumber: _phoneController.text,
         userDto: userDTO,
       );
 
-      // Dispatch event
       customersBloc.add(SubmitData(model: customerDTO.toJson()));
     }
   }

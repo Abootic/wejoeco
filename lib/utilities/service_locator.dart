@@ -7,8 +7,11 @@ import '../apis/dio_client.dart';
 import '../repositories/CustomerRepository.dart';
 import '../repositories/LoginRepository.dart';
 import '../repositories/MarketRepository.dart';
+import '../repositories/OrderRepository.dart';
+import '../repositories/PercentageRepository.dart';
 import '../repositories/ProductRepository.dart';
 import '../repositories/SharedRepository.dart';
+import '../repositories/SupplierProfitRepository.dart';
 import '../repositories/SupplierRepository.dart';
 
 final getIt = GetIt.instance;
@@ -25,6 +28,9 @@ Future<void> setupDI() async {
   getIt.registerSingleton(CustomerRepository(getIt.get<DioClient>()));
   getIt.registerSingleton(LoginRepository(getIt.get<DioClient>()));
   getIt.registerSingleton(ProductRepository(getIt.get<DioClient>()));
+  getIt.registerSingleton(OrderRepository(getIt.get<DioClient>()));
+  getIt.registerSingleton(PercentageRepository(getIt.get<DioClient>()));
+  getIt.registerSingleton(SupplierProfitRepository(getIt.get<DioClient>()));
 
   //============= Repositories Services =================
   //getIt.registerSingleton(ExampleRepository(getIt.get<ExampleApi>()));

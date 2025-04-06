@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
+import 'RegisterScreen.dart';
+import 'RegisterPagecustomer.dart';
+import 'LoginScreen.dart';
 
-// Import your customer and supplier registration screens
-import 'RegisterScreen.dart';// Replace with the actual path to your customer registration screen
-import 'RegisterPagecustomer.dart'; // Replace with the actual path to your supplier registration screen
 
 class OptionPageScreen extends StatelessWidget {
   const OptionPageScreen({super.key});
@@ -18,10 +20,9 @@ class OptionPageScreen extends StatelessWidget {
               'Select an option',
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 40), // Add some spacing
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () {
-                // Navigate to the customer registration page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -29,12 +30,12 @@ class OptionPageScreen extends StatelessWidget {
                   ),
                 );
               },
+              style: AppStyles.elevatedButtonStyle(AppColors.primary),
               child: const Text('If you are a Customer, Register here'),
             ),
-            const SizedBox(height: 20), // Add some spacing
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Navigate to the supplier registration page
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -42,7 +43,21 @@ class OptionPageScreen extends StatelessWidget {
                   ),
                 );
               },
+              style: AppStyles.elevatedButtonStyle(AppColors.primary),
               child: const Text('If you are a Supplier, Register here'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoginScreen(),
+                  ),
+                );
+              },
+              style: AppStyles.elevatedButtonStyle(AppColors.primary),
+              child: const Text('Login'),
             ),
           ],
         ),

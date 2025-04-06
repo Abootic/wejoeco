@@ -1,112 +1,102 @@
-import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../models/MarketDTO.dart';
-import '../repositories/MarketRepository.dart';
-import '../utilities/state_types.dart';
+import '../../models/MarketDTO.dart';
+import '../../repositories/MarketRepository.dart';
+import '../../utilities/state_types.dart';
 
-// Market Bloc to handle events
-class MarketBloc extends Bloc<MarketsEvent, MarketState> {
-  final MarketRepository repository;
+// Events
+abstract class MarketEvent {}
 
-  MarketBloc({required this.repository}) : super(MarketState()) {
-    on<Submit>(_onSubmit);
-    on<LoadData>(_onLoadData);
-  }
-
-  Future<void> _onSubmit(Submit event, Emitter<MarketState> emit) async {
-    emit(state.copyWith(
-      currentState: StateTypes.submitting,
-      error: null,
-    ));
-
-    try {
-      final item = await repository.add(event.model);
-      print("Market added with id: ${item.id}");
-
-      final updatedItems = List<MarketDTO>.from(state.items)..add(item);
-      print("Updated items: ${updatedItems.length}");
-
-      emit(state.copyWith(
-        currentState: StateTypes.submitted,
-        error: null,
-        items: updatedItems,
-      ));
-
-   } catch (e) {
-      emit(state.copyWith(
-        currentState: StateTypes.error,
-        error: e.toString(),
-      ));
-    }
-  }
-
-  Future<void> _onLoadData(LoadData event, Emitter<MarketState> emit) async {
-    emit(state.copyWith(
-      currentState: StateTypes.loading,
-      error: null,
-    ));
-
-    try {
-      final items = await repository.getAll(refresh: event.forceRefresh);
-      emit(state.copyWith(
-        currentState: StateTypes.loaded,
-        error: null,
-        items: items.result,
-        isFromCache: items.isFromCache,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
-        currentState: StateTypes.error,
-        error: e.toString(),
-      ));
-    }
-  }
-}
-// MarketState class to hold the state of markets and other necessary data
-class MarketState {
-  final StateTypes currentState;
-  final String? error;
-  final List<MarketDTO> items;
-  final MarketDTO? model;
-  final bool isFromCache;
-
-  MarketState({
-    this.currentState = StateTypes.init,
-    this.error,
-    this.items = const [],
-    this.isFromCache = false,
-    this.model,
-  });
-
-  // Helper method to copy state with changes
-  MarketState copyWith({
-    StateTypes? currentState,
-    String? error,
-    List<MarketDTO>? items,
-    bool? isFromCache,
-    MarketDTO? model,
-  }) {
-    return MarketState(
-      currentState: currentState ?? this.currentState,
-      error: error ?? this.error,
-      items: items ?? this.items,
-      isFromCache: isFromCache ?? this.isFromCache,
-      model: model ?? this.model,
-    );
-  }
+class LoadData extends MarketEvent {
+  final bool forceRefresh;
+  LoadData({this.forceRefresh = false});
 }
 
-// Abstract class for events
-abstract class MarketsEvent {}
 
-class Submit extends MarketsEvent {
+class Submit extends MarketEvent {
   final Map<String, dynamic> model;
-
   Submit(this.model);
 }
 
-class LoadData extends MarketsEvent {
-  final bool forceRefresh;
 
-  LoadData({this.forceRefresh = false});
+// State
+class MarketState {
+  final StateTypes currentState;
+  final List<MarketDTO> items;
+  final String error;
+  final int selectedIndex; // Added to track which card is selected
+
+  MarketState({
+    this.currentState = StateTypes.init,
+    this.items = const [],
+    this.error = '',
+    this.selectedIndex = -1, // Default to no card selected
+  });
+
+  MarketState copyWith({
+    StateTypes? currentState,
+    List<MarketDTO>? items,
+    String? error,
+    int? selectedIndex,
+  }) {
+    print("Updating state: currentState=$currentState, items=${items?.length}, error=$error, selectedIndex=$selectedIndex"); // Debugging
+    return MarketState(
+      currentState: currentState ?? this.currentState,
+      items: items ?? this.items,
+      error: error ?? this.error,
+      selectedIndex: selectedIndex ?? this.selectedIndex,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MarketState &&
+        other.currentState == currentState &&
+        other.items == items &&
+        other.error == error &&
+        other.selectedIndex == selectedIndex;
+  }
+
+  @override
+  int get hashCode => currentState.hashCode ^ items.hashCode ^ error.hashCode ^ selectedIndex.hashCode;
+}
+
+// Bloc
+class MarketBloc extends Bloc<MarketEvent, MarketState> {
+  final MarketRepository repository;
+
+  MarketBloc({required this.repository}) : super(MarketState()) {
+    on<LoadData>(_onLoadData);
+    on<Submit>(_onSubmit);
+  }
+
+  Future<void> _onLoadData(LoadData event, Emitter<MarketState> emit) async {
+    emit(state.copyWith(currentState: StateTypes.loading));
+
+    try {
+      final markets = await repository.getAll(refresh: event.forceRefresh);
+      print("Fetched markets: ${markets.result}"); // Debugging
+      emit(state.copyWith(
+        currentState: StateTypes.loaded,
+        items: markets.result,
+      ));
+    } catch (e) {
+      emit(state.copyWith(currentState: StateTypes.error, error: e.toString()));
+    }
+  }
+
+  Future<void> _onSubmit(Submit event, Emitter<MarketState> emit) async {
+    emit(state.copyWith(currentState: StateTypes.submitting));
+
+    try {
+      await repository.add(event.model);
+      // After adding, reload the data
+      add(LoadData());
+    } catch (e) {
+      emit(state.copyWith(currentState: StateTypes.error, error: e.toString()));
+    }
+  }
+
+  // Handle the card tap event
+
 }

@@ -8,6 +8,7 @@ import '../models/LoginDto.dart';
 import 'package:dio/dio.dart';
 
 import '../models/SupplierDTO.dart';
+import '../models/UserDTO.dart';
 class SupplierRepository {
   final DioClient api;
   SupplierRepository(this.api);
@@ -65,35 +66,47 @@ class SupplierRepository {
       rethrow;
     }
   }
-
   Future<List<SupplierDTO>> getAll({bool refresh = false}) async {
-    print("==== refresh in getAll colleges: ${refresh} ==========");
+    print("=======================:  getAll in  SupplierRepository ==========");
     try {
       final response = await api.get(
         Urls.Suppliers,
         useCache: false, // Disable caching
       );
+      print("========================= supplier data in SupplierRepository ========================");
+      print("Response data: ${response.data}");
+      print("Response data type: ${response.data.runtimeType}");
 
-      if (!response.data["succeeded"]) {
-        throw NotSuccessException.fromMessage(response.data["status"]["message"]);
+      // Check if the response is a map
+      if (response.data is! Map<String, dynamic>) {
+        throw Exception("Invalid response format: Expected a map");
       }
 
-      // Map the response data to SupplierDTO list
-      final items = (response.data["data"] as List)
-          .map((e) => SupplierDTO.fromJson(e))
-          .toList();
+      // Extract the 'data' field from the response
+      final dynamic responseData = response.data['data'];
+      if (responseData == null) {
+        throw Exception("No data found in the response");
+      }
 
-      return items; // Return the list directly, without ResponseCache
+      // Check if the 'data' field is a list
+      if (responseData is! List<dynamic>) {
+        throw Exception("Invalid data format: Expected a list");
+      }
+
+      // Convert the list into a list of SupplierDTO
+      final List<SupplierDTO> suppliers = responseData.map((item) {
+        return SupplierDTO.fromJson(item);
+      }).toList();
+
+      print("Converted suppliers: ${suppliers}");
+      return suppliers;
     } on DioError catch (e) {
       final errorMessage = DioExceptions.fromDioError(e).toString();
       throw errorMessage;
     } on Exception catch (ex) {
       rethrow;
     }
-  }
-
-
-  Future<SupplierDTO> getById(int id, {bool refresh = false}) async {
+  } Future<SupplierDTO> getById(int id, {bool refresh = false}) async {
     try {
       print("==============================================================================");
       print("supplier getById repository is ${id}");
@@ -113,7 +126,7 @@ class SupplierRepository {
       }
 
       // Safely extract the data and convert it into SupplierDTO
-      final item = SupplierDTO.fromJson(response.data["data"]);
+      final item = SupplierDTO.fromJson(response.data);
       return item;
 
     } on DioError catch (e) {

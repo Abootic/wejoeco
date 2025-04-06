@@ -70,8 +70,7 @@ class ProductRepository{
   }
 Future<ProductDTO> add(Map<String, dynamic> data)async{
     try{
-      print("====== product submit repository ====================================");
-      print(jsonEncode(data));
+
       final response = await api.post(Urls.Products,data: data, clearCacheAfterPost: true, useToken: true);
       if(!response.data["succeeded"]){
         throw NotSuccessException.fromMessage(response.data["status"]["message"]);

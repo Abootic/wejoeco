@@ -1,49 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../bloc/OrderBloc.dart';
+import '../../repositories/SharedRepository.dart';
+import '../../utilities/state_types.dart';
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
+import '../wedgetHelper/reusable_widgets.dart';
+
 
 class CartScreen extends StatelessWidget {
-  const CartScreen({super.key});
+  final SharedRepository _sharedRepository = GetIt.instance<SharedRepository>();
+
+  CartScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Center(
-          child: Text(
-            'Cart',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return FutureBuilder<int?>(
+      future: _getUserId(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return buildLoadingWidget();
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return buildErrorWidget("Unable to fetch user ID. Please try again.");
+        }
+
+        final userId = snapshot.data;
+        context.read<OrderBloc>().add(LoadDataByUserid(Userid: userId!));
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('My Cart'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
           ),
+          body: Padding(
+            padding: const EdgeInsets.all(AppStyles.padding),
+            child: BlocBuilder<OrderBloc, OrderState>(
+              builder: (context, state) {
+                if (state.currentState == StateTypes.loading) {
+                  return _buildShimmerLoading();
+                }
+
+                if (state.currentState == StateTypes.error) {
+                  return buildErrorWidget(state.error ?? "An error occurred.");
+                }
+
+                if (state.currentState == StateTypes.loaded) {
+                  if (state.items.isEmpty) {
+                    return const Center(
+                      child: Text("Your cart is empty 🛒"),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: state.items.length,
+                    itemBuilder: (context, index) {
+                      final order = state.items[index];
+                      return _buildCartItem(context, order, userId);
+                    },
+                  );
+                }
+
+                return buildErrorWidget("No data available.");
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<int?> _getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? userIdString = prefs.getString("userId");
+    return userIdString != null ? int.tryParse(userIdString) : null;
+  }
+
+  Widget _buildCartItem(BuildContext context, dynamic order, int userId) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.borderRadius)),
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primary.withOpacity(0.2),
+          child: const Icon(Icons.shopping_bag, color: AppColors.primary),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
+        title: Text(
+          "Order #${order.id}",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        subtitle: Text(
+          "Price: SAR ${order.price}",
+          style: const TextStyle(fontSize: 14, color: AppColors.hintText),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // First Container with a different image
-            _buildCartItem(
-              'assets/Images/image1.png.jpg',
-              'Factory Customized trendy big',
-              'This is a trendy and customized product designed for modern fashion enthusiasts.',
+            Text(
+              "Total: SAR ${order.price}",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10), // Add spacing between containers
-            // Second Container with a different image
-            _buildCartItem(
-              'assets/Images/image2.png.jpg',
-              'Elegant Summer Dress',
-              'A lightweight and elegant dress perfect for summer outings.',
-            ),
-            const SizedBox(height: 10), // Add spacing between containers
-            // Third Container with a different image
-            _buildCartItem(
-              'assets/Images/image3.png.jpg',
-              'Classic Leather Jacket',
-              'A timeless leather jacket that adds a touch of sophistication to any outfit.',
-            ),
-            const SizedBox(height: 10), // Add spacing between containers
-            // Fourth Container with a different image
-            _buildCartItem(
-              'assets/Images/image4.png.jpg',
-              'Sporty Running Shoes',
-              'Comfortable and durable running shoes designed for athletes.',
+            const SizedBox(width: 10),
+            IconButton(
+              icon: const Icon(Icons.delete, color: AppColors.error),
+              onPressed: () => _confirmDelete(context, order.id, userId),
             ),
           ],
         ),
@@ -51,86 +117,52 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // Helper method to create a cart item container with a custom image, name, and description
-  Widget _buildCartItem(String imagePath, String productName, String description) {
-    return Container(
-      width: 400,
-      height: 150, // Increased height to accommodate the description
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(width: 2, color: Colors.white),
-        boxShadow: const [BoxShadow(blurRadius: 8)],
-      ),
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              width: 100,
-              height: 100,
-              child: Image.asset(imagePath), // Use the provided image path
+  void _confirmDelete(BuildContext context, int orderId, int userId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text("Confirm Delete"),
+          content: const Text("Are you sure you want to remove this item from your cart?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                context.read<OrderBloc>().add(DeleteOrder(orderId: orderId));
+                context.read<OrderBloc>().add(LoadDataByUserid(Userid: userId));
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text("Delete", style: TextStyle(color: AppColors.error)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.borderRadius)),
+            elevation: 3,
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+            child: ListTile(
+              leading: CircleAvatar(backgroundColor: Colors.white),
+              title: Container(height: 10, width: 80, color: Colors.white),
+              subtitle: Container(height: 10, width: 100, color: Colors.white),
+              trailing: Container(height: 10, width: 60, color: Colors.white),
             ),
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
-                  child: Text(
-                    productName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 5.0),
-                  child: Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                    maxLines: 2, // Limit description to 2 lines
-                    overflow: TextOverflow.ellipsis, // Add ellipsis if text overflows
-                  ),
-                ),
-                Spacer(), // Pushes the price and buttons to the bottom
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: Row(
-                    children: [
-                      Text(
-                        'SAR 18.50',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Spacer(), // Adds space between price and buttons
-                      IconButton(
-                        icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                        onPressed: () {
-                          // Handle delete action
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.add_circle_outline, color: Colors.green),
-                        onPressed: () {
-                          // Handle add action
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

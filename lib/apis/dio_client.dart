@@ -17,13 +17,13 @@ class DioClient {
   late final HiveCacheStore _cacheStore;
 
   DioClient(this._dio) {
-    _cacheStore = HiveCacheStore(_getCachePath()); // Use absolute path for cache directory
+    _cacheStore = HiveCacheStore(_getCachePath());
 
     final cacheOptions = CacheOptions(
       store: _cacheStore,
-      policy: CachePolicy.forceCache, // Always use cache
-      maxStale: const Duration(days: 10), // Cache expiration time
-      hitCacheOnErrorExcept: [401, 403], // Don't cache errors like 401, 403
+      policy: CachePolicy.forceCache,
+      maxStale: const Duration(days: 10),
+      hitCacheOnErrorExcept: [401, 403],
     );
 
     _cacheInterceptor = DioCacheInterceptor(options: cacheOptions);
@@ -33,18 +33,16 @@ class DioClient {
       ..options.connectTimeout = Duration(milliseconds: Urls.connectionTimeout)
       ..options.receiveTimeout = Duration(milliseconds: Urls.receiveTimeout)
       ..options.responseType = ResponseType.json
-      ..interceptors.add(_cacheInterceptor); // Add the cache interceptor
+      ..interceptors.add(_cacheInterceptor);
   }
 
-  // Get the cache path dynamically based on the platform
   String _getCachePath() {
     if (Platform.isAndroid || Platform.isIOS) {
-      return Directory.systemTemp.path + '/cache'; // Use system temp directory for mobile
+      return Directory.systemTemp.path + '/cache';
     }
-    return './cache'; // Default for other platforms
+    return './cache';
   }
 
-  // Request Storage Permission for Android and iOS
   Future<void> requestStoragePermission() async {
     if (await Permission.storage.request().isGranted) {
       print("Storage permission granted");
@@ -53,10 +51,9 @@ class DioClient {
     }
   }
 
-  // Clear Cache
   Future<bool> clearCache() async {
     try {
-      await _cacheStore.clean(); // Clear all cached data
+      await _cacheStore.clean();
       return true;
     } catch (e) {
       print("Error clearing cache: ${e.toString()}");
@@ -64,73 +61,67 @@ class DioClient {
     }
   }
 
-  // Get Request with Cache Handling
   Future<Response> get(
-      String url, {
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-        CancelToken? cancelToken,
-        ProgressCallback? onReceiveProgress,
-        bool useCache = true,
-        bool refresh = false,
-      }) async {
-      try {
-        if (refresh) {
-          // Clear cache for this specific URL
-          await _cacheStore.delete(Uri.parse(url) as String);
-        }
-
-        if (options == null) {
-          options = Options(headers: await _getHeaders());
-        } else {
-          options = options.copyWith(headers: await _getHeaders());
-        }
-
-        final cacheOptions = CacheOptions(
-          policy: useCache ? CachePolicy.forceCache : CachePolicy.refresh, // Cache if needed
-          maxStale: const Duration(seconds: Urls.maxStale),
-          store: _cacheStore,
-        );
-        print("Cache cleared for GET request: $url");
-
-        final Response response = await _dio.get(
-          url,
-          queryParameters: queryParameters,
-          options: useCache ? cacheOptions.toOptions() : options, // Apply caching if enabled
-          cancelToken: cancelToken,
-          onReceiveProgress: onReceiveProgress,
-        );
-
-        print("Cache Hit: ${response.extra['cached'] ?? false}");
-        return response;
-      } catch (e) {
-        if (kDebugMode) {
-          print("Exception in Dio client GET: $e");
-        }
-        rethrow;
+    String url, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onReceiveProgress,
+    bool useCache = true,
+    bool refresh = false,
+  }) async {
+    try {
+      if (refresh) {
+        await _cacheStore.delete(Uri.parse(url) as String);
       }
+
+      options =
+          options?.copyWith(headers: await _getHeaders()) ??
+          Options(headers: await _getHeaders());
+
+      final cacheOptions = CacheOptions(
+        policy: useCache ? CachePolicy.forceCache : CachePolicy.refresh,
+        maxStale: const Duration(seconds: Urls.maxStale),
+        store: _cacheStore,
+      );
+
+      print("Cache cleared for GET request: $url");
+
+      final Response response = await _dio.get(
+        url,
+        queryParameters: queryParameters,
+        options: useCache ? cacheOptions.toOptions() : options,
+        cancelToken: cancelToken,
+        onReceiveProgress: onReceiveProgress,
+      );
+
+      print("Cache Hit: ${response.extra['cached'] ?? false}");
+      return response;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Exception in Dio client GET: $e");
+      }
+      rethrow;
+    }
   }
 
-  // Post Request with Cache Handling
   Future<Response> post(
-      String uri, {
-        data,
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-        CancelToken? cancelToken,
-        ProgressCallback? onSendProgress,
-        ProgressCallback? onReceiveProgress,
-        bool clearCacheAfterPost = false,
-        bool useToken = true,
-      }) async {
+    String uri, {
+    data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+    bool clearCacheAfterPost = false,
+    bool useToken = true,
+  }) async {
     try {
-      if (options == null) {
-        options = Options(headers: await _getHeaders(useToken: useToken));
-      } else {
-        options = options.copyWith(headers: await _getHeaders(useToken: useToken));
-      }
+      options =
+          options?.copyWith(headers: await _getHeaders(useToken: useToken)) ??
+          Options(headers: await _getHeaders(useToken: useToken));
+
       print("POST Request URI: $uri");
-      print("POST Request URL: ${Urls.BaseUrl + uri}");
       print("POST Data: ${jsonEncode(data)}");
 
       final Response response = await _dio.post(
@@ -144,7 +135,7 @@ class DioClient {
       );
 
       if (clearCacheAfterPost) {
-        await clearCache(); // Clear cache after POST request if needed
+        await clearCache();
       }
 
       return response;
@@ -156,12 +147,90 @@ class DioClient {
     }
   }
 
-  // Helper Method to Get Headers (with Token)
+  /// **PUT Request (Update)**
+  Future<Response> put(
+    String uri, {
+    data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+    bool clearCacheAfterPut = false,
+    bool useToken = true,
+  }) async {
+    try {
+      options =
+          options?.copyWith(headers: await _getHeaders(useToken: useToken)) ??
+          Options(headers: await _getHeaders(useToken: useToken));
+
+      print("PUT Request URI: $uri");
+      print("PUT Data: ${jsonEncode(data)}");
+
+      final Response response = await _dio.put(
+        uri,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      );
+
+      if (clearCacheAfterPut) {
+        await clearCache();
+      }
+
+      return response;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Exception in Dio client PUT: $e");
+      }
+      rethrow;
+    }
+  }
+
+  /// **DELETE Request**
+  Future<Response> delete(
+    String uri, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    bool clearCacheAfterDelete = true,
+    bool useToken = true,
+  }) async {
+    try {
+      options =
+          options?.copyWith(headers: await _getHeaders(useToken: useToken)) ??
+          Options(headers: await _getHeaders(useToken: useToken));
+
+      print("DELETE Request URI: $uri");
+
+      final Response response = await _dio.delete(
+        uri,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+
+      if (clearCacheAfterDelete) {
+        await clearCache();
+      }
+
+      return response;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Exception in Dio client DELETE: $e");
+      }
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> _getHeaders({bool useToken = true}) async {
     final Map<String, dynamic> headers = {};
     if (useToken) {
       final String? token = await _getToken("accessToken");
-      print("Token being sent: $token"); // Debugging
+      print("Token being sent: $token");
       if (token != null && token.isNotEmpty) {
         headers["Authorization"] = "Bearer $token";
       }
@@ -169,15 +238,11 @@ class DioClient {
     return headers;
   }
 
-  // Helper Method to Get Token from SharedPreferences
   Future<String?> _getToken(String key) async {
     try {
       var shared = getIt<SharedRepository>();
       var token = await shared.getData(key);
-      if (token != "error") {
-        return token;
-      }
-      return null;
+      return token != "error" ? token : null;
     } catch (exp) {
       return null;
     }

@@ -5,5 +5,6 @@ enum StateTypes{
   loading,
   loaded,
   submitting,
-  submitted
+  submitted,
+  empty
 }

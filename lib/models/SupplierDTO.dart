@@ -18,10 +18,16 @@ class SupplierDTO {
   });
 
   factory SupplierDTO.fromJson(Map<String, dynamic> json) {
+    print("================ start SupplierDTO.fromJson ===================");
+    print("id: ${json['id']}, type: ${json['id'].runtimeType}");
+    print("user_id: ${json['user_id']}, type: ${json['user_id'].runtimeType}");
+    print("market_id: ${json['market_id']}, type: ${json['market_id'].runtimeType}");
+    print("================ end SupplierDTO.fromJson ===================");
+
     return SupplierDTO(
-      id: json['id'] as int?,
-      userId: json['user_id'] as int?,
-      marketId: json['market_id'] as int?,
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      userId: json['user_id'] != null ? int.tryParse(json['user_id'].toString()) : null,
+      marketId: json['market_id'] != null ? int.tryParse(json['market_id'].toString()) : null,
       code: json['code'] as String?,
       userDTO: json['user_dto'] != null ? UserDTO.fromJson(json['user_dto']) : null,
       joinDate: json['join_date'] != null ? DateTime.parse(json['join_date']) : null,
@@ -34,8 +40,8 @@ class SupplierDTO {
       'user_id': userId,
       'market_id': marketId,
       'code': code,
-      'user_dto': userDTO?.toJson(), // Ensure userDTO is not null before calling toJson()
-      'join_date': joinDate?.toIso8601String(), // Handle null dates gracefully
+      'user_dto': userDTO?.toJson(),
+      'join_date': joinDate?.toIso8601String(),
     };
   }
 }

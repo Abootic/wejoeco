@@ -2,13 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../../bloc/ProductBloc.dart';
-import '../../repositories/ProductRepository.dart';
+
 import '../../repositories/SharedRepository.dart';
 import '../../utilities/state_types.dart';
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
+import '../wedgetHelper/reusable_widgets.dart';
+
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -21,18 +24,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String name = '';
   double price = 0.0;
-  String imageUrl = ''; // To store the image path
-  String? userId; // Variable to store the user ID
+  String imageUrl = '';
+  String? userId;
   final SharedRepository _sharedRepository = GetIt.instance<SharedRepository>();
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _loadUserId(); // Load user ID when the screen is initialized
+    _loadUserId();
   }
 
-  // Load user ID from shared preferences
   Future<void> _loadUserId() async {
     try {
       String? fetchedUserId = await _sharedRepository.getData("userId");
@@ -45,14 +47,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  // Convert image file to base64
   Future<String> _getBase64Image(String imagePath) async {
     final file = File(imagePath);
     final bytes = await file.readAsBytes();
     return base64Encode(bytes);
   }
 
-  // Pick image from gallery
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -62,7 +62,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  // Submit form and upload product data
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -75,7 +74,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final productData = {
         'name': name,
         'price': price,
-        'image': base64Image, // Send base64-encoded image
+        'image': base64Image,
         'supplier_id': 1,
         'user_id': userId,
       };
@@ -87,34 +86,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Product')),
+      appBar: AppBar(
+        title: const Text('Add New Product'),
+        backgroundColor: AppColors.primary,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppStyles.padding),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
             child: Column(
               children: [
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Product Name'),
+                  decoration: AppStyles.inputDecoration('Product Name'),
                   validator: (value) => value!.isEmpty ? 'Enter a product name' : null,
                   onSaved: (value) => name = value!,
                 ),
+                const SizedBox(height: AppStyles.padding),
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Price'),
+                  decoration: AppStyles.inputDecoration('Price'),
                   keyboardType: TextInputType.number,
                   validator: (value) => value!.isEmpty ? 'Enter a price' : null,
                   onSaved: (value) => price = double.parse(value!),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppStyles.padding),
                 GestureDetector(
                   onTap: _pickImage,
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(AppStyles.borderRadius),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -129,7 +132,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppStyles.padding),
                 if (imageUrl.isNotEmpty)
                   Image.file(
                     File(imageUrl),
@@ -137,21 +140,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     width: 150,
                     fit: BoxFit.cover,
                   ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppStyles.padding),
                 ElevatedButton(
                   onPressed: _submitForm,
-                  child: const Text('Add Product'),
+                  style: AppStyles.elevatedButtonStyle(AppColors.primary),
+                  child: const Text('Add Product', style: TextStyle(color: AppColors.buttonText)),
                 ),
                 BlocBuilder<ProductBloc, ProductState>(
                   builder: (context, state) {
                     if (state.currentState == StateTypes.submitting) {
-                      return const CircularProgressIndicator();
+                      return buildLoadingWidget();
                     }
                     if (state.currentState == StateTypes.submitted) {
                       return const Text('Product added successfully!');
                     }
                     if (state.currentState == StateTypes.error) {
-                      return Text('Error: ${state.error}');
+                      return buildErrorWidget(state.error ?? "An error occurred.");
                     }
                     return Container();
                   },

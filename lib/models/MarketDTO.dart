@@ -16,6 +16,16 @@ class MarketDTO {
       name: name,
     );
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MarketDTO &&
+        other.id == id &&
+        other.name == name;
+  }
+
+  @override
+  int get hashCode => id.hashCode ^ name.hashCode;
 
 
   Map<String, dynamic> toJson() {

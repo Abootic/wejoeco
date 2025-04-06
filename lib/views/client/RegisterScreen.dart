@@ -1,11 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../../bloc/SupplierBloc.dart';
 import '../../models/SupplierDTO.dart';
 import '../../models/UserDTO.dart';
 import '../../utilities/state_types.dart';
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
 
 
 class RegisterScreen extends StatefulWidget {
@@ -17,8 +18,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  // Controllers to get user input
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -31,13 +30,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: BlocConsumer<SupplierBloc, SupplierState>(
         listener: (context, state) {
           if (state.currentState == StateTypes.submitted) {
-            // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Registration Successful!")),
             );
-            Navigator.pop(context); // Go back to login screen
+            Navigator.pop(context);
           } else if (state.currentState == StateTypes.error) {
-            // Show error message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Error: ${state.error}")),
             );
@@ -47,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           return Form(
             key: _formKey,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: AppStyles.padding),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -59,8 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(_nameController, "Name"),
                   SizedBox(height: 20),
                   _buildTextField(_emailController, "Email", TextInputType.emailAddress),
-
-
                   SizedBox(height: 20),
                   _buildTextField(_passwordController, "Password", TextInputType.visiblePassword),
                   SizedBox(height: 30),
@@ -85,12 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
+      decoration: AppStyles.inputDecoration(label),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return "Please enter $label";
@@ -108,12 +98,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         width: double.infinity,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.black,
+          borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+          color: AppColors.primary,
         ),
         child: state.currentState == StateTypes.submitting
-            ? CircularProgressIndicator(color: Colors.white)
-            : Text("Register", style: TextStyle(color: Colors.white, fontSize: 20)),
+            ? CircularProgressIndicator(color: AppColors.buttonText)
+            : Text("Register", style: TextStyle(color: AppColors.buttonText, fontSize: 20)),
       ),
     );
   }
@@ -122,10 +112,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return RichText(
       text: TextSpan(
         children: [
-          TextSpan(text: "Already have an account? ", style: TextStyle(color: Colors.black)),
+          TextSpan(text: "Already have an account? ", style: TextStyle(color: AppColors.text)),
           TextSpan(
             text: "Login here",
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
             recognizer: TapGestureRecognizer()..onTap = () => Navigator.pop(context),
           ),
         ],
@@ -137,7 +127,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       final supplierBloc = context.read<SupplierBloc>();
 
-      // Create UserDTO
       UserDTO userDTO = UserDTO(
         username: _nameController.text,
         email: _emailController.text,
@@ -145,14 +134,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
 
-      // Create SupplierDTO
       SupplierDTO supplierDTO = SupplierDTO(
         code: "ll",
         userDTO: userDTO,
-          marketId: 1
+        marketId: 17,
       );
 
-      // Dispatch event
       supplierBloc.add(SubmitData(model: supplierDTO.toJson()));
     }
   }

@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../wedgetHelper/app_colors.dart';
+import '../wedgetHelper/app_styles.dart';
+
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -36,25 +40,25 @@ class _SearchScreenState extends State<SearchScreen> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
+        backgroundColor: AppColors.primary,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppStyles.padding),
         child: Column(
           children: [
-            // Search Bar
             TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'What are you looking for?',
-                hintStyle: TextStyle(fontWeight: FontWeight.normal, color: Colors.grey),
+                hintStyle: TextStyle(fontWeight: FontWeight.normal, color: AppColors.hintText),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppStyles.borderRadius),
                 ),
-                prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
+                prefixIcon: Icon(CupertinoIcons.search, color: AppColors.hintText),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                  icon: Icon(Icons.clear, color: Colors.grey),
+                  icon: Icon(Icons.clear, color: AppColors.hintText),
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
@@ -66,8 +70,6 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Display Search Results or Recent/Popular Searches
             Expanded(
               child: _searchController.text.isNotEmpty
                   ? _buildSearchResults()
@@ -79,7 +81,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // Build Search Results
   Widget _buildSearchResults() {
     return ListView.builder(
       itemCount: searchResults.length,
@@ -94,7 +95,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // Build Recent and Popular Searches
   Widget _buildRecentAndPopularSearches() {
     return SingleChildScrollView(
       child: Column(

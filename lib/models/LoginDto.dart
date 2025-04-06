@@ -1,36 +1,33 @@
 import 'UserDTO.dart';
 
 class AuthResponse {
+  final bool success;
   final String accessToken;
   final String refreshToken;
-  final UserDTO? user; // Make user nullable
+  final   UserDTO? user;
 
   AuthResponse({
+    required this.success,
     required this.accessToken,
     required this.refreshToken,
-    this.user, // Make user optional
+    this.user,
   });
 
-  // Factory constructor to create an AuthResponse object from JSON
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     return AuthResponse(
+      success: json['succeeded'] ?? false,
       accessToken: json['access_token'] ?? '',
       refreshToken: json['refresh_token'] ?? '',
       user: json['user'] != null ? UserDTO.fromJson(json['user']) : null,
     );
   }
 
-
-  // Convert the AuthResponse object back to JSON
   Map<String, dynamic> toJson() {
     return {
+      'succeeded': success,
       'access_token': accessToken,
       'refresh_token': refreshToken,
-      'user': user?.toJson(), // Safely call toJson() if user is not null
+      'user': user?.toJson(),
     };
   }
-
-  // You can add a helper method to check if user exists:
-  bool get hasUser => user != null;
 }
-

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/LoginBloc.dart';
-import '../../bloc/ProductBloc.dart';
-import '../../models/ProductDTO.dart';
-import '../../utilities/state_types.dart';
-import 'Cart_Screen.dart';
+import '../wedgetHelper/app_colors.dart';
 import 'DashBoardContent.dart';
+import 'Cart_Screen.dart';
 import 'ProfileScreen.dart';
 import 'SearchScreen.dart';
-import 'LoginScreen.dart'; // Import the LoginScreen
+import 'LoginScreen.dart';
+
 
 class DashBoardScreen extends StatefulWidget {
   const DashBoardScreen({super.key});
@@ -22,7 +21,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   final screens = [
     const DashBoardContent(),
     const SearchScreen(),
-    const CartScreen(),
+    CartScreen(),
     const ProfileScreen(),
   ];
 
@@ -36,6 +35,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
+        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -50,9 +50,9 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
             currentIndex = index;
           });
         },
-        selectedItemColor: Colors.blue,
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -66,9 +66,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   }
 
   void _onLogoutPressed() {
-    // Dispatch the logout event to the LoginBloc
     BlocProvider.of<LoginBloc>(context).add(LogoutEvent());
-    // After logout, navigate to the LoginScreen and replace the current screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),

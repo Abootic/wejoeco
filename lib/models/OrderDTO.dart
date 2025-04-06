@@ -23,12 +23,17 @@ class OrderDTO {
       id: json['id'] as int?,
       customerId: json['customer_id'] as int?,
       productId: json['product_id'] as int?,
-      totalPrice: (json['total_price'] as num?)?.toDouble(),
-      price: (json['price'] as num?)?.toDouble(),
+      totalPrice: json['total_price'] != null
+          ? double.tryParse(json['total_price'].toString()) ?? 0.0  // ✅ Converts string to double safely
+          : 0.0,
+      price: json['price'] != null
+          ? double.tryParse(json['price'].toString()) ?? 0.0  // ✅ Converts string to double safely
+          : 0.0,
       quantity: json['quantity'] as int?,
       createdAt: json['create_at'] != null ? DateTime.parse(json['create_at']) : null,
     );
   }
+
 
   Map<String, dynamic> toJson() {
     return {

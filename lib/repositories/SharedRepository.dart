@@ -1,38 +1,24 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class SharedRepository {
-  Future<String> getData(String name) async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      if (prefs.containsKey(name)) {
-        var val = prefs.getString(name);
-        if (val != null && val.isNotEmpty) {
-          return val;
-        }
-      }
-      return "error";
-    } on Exception catch (ex) {
-      return "error";
-    }
+  Future<void> setData(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+    print("Saved $key: $value"); // Debug log
   }
 
-  Future<bool> clearData() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      var res = await prefs.clear();
-      return res;
-    } catch (e) {
-      return false;
-    }
+  Future<String?> getData(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(key);
+    print("Retrieved $key: $value"); // Debug log
+    return value;
   }
 
-  Future<bool> setData(String key, String value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    try {
-      var res = await prefs.setString(key, value);
-      return res;
-    } catch (ex) {
-      return false;
-    }
+  Future<void> clearData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    print("Cleared all data"); // Debug log
   }
 }

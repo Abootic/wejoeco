@@ -10,29 +10,34 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final SharedRepository _sharedRepository = GetIt.instance<SharedRepository>();
 
   LoginBloc({required this.repository}) : super(LoginState()) {
-    print("LoginBloc initialized with hashCode: ${this.hashCode}");
     on<SubmitData>(_onSubmit);
     on<LogoutEvent>(_onLogout);
-    on<CheckLoginStatusEvent>(_onCheckLoginStatus); // New event handler
+    on<CheckLoginStatusEvent>(_onCheckLoginStatus);
   }
 
-  // Handle the submit event (for login)
   Future<void> _onSubmit(SubmitData event, Emitter<LoginState> emit) async {
-    emit(state.copyWith(
-      currentState: StateTypes.submitting,
-      error: null,
-    ));
-    print("username is ${event.model.values}");
+    emit(state.copyWith(currentState: StateTypes.submitting, error: null));
+
     try {
       final response = await repository.login(event.model);
 
-      emit(state.copyWith(
-        currentState: StateTypes.submitted,
-        error: null,
-        authResponse: response,
-      ));
+      if (response.user != null) {
+        final user = response.user!;
+
+        await _sharedRepository.setData("accessToken", response.accessToken);
+        await _sharedRepository.setData("userId", user.id.toString());
+        await _sharedRepository.setData("userType", user.userType ?? "");
+        await _sharedRepository.setData("username", user.username ?? "");
+
+        emit(state.copyWith(
+          currentState: StateTypes.submitted,
+          error: null,
+          authResponse: response,
+        ));
+      } else {
+        throw Exception("User is null in the login response");
+      }
     } catch (e) {
-      print("============ EXP in submit: ${e.toString()} ========");
       emit(state.copyWith(
         currentState: StateTypes.error,
         error: e.toString(),
@@ -41,21 +46,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   }
 
   Future<void> _onLogout(LogoutEvent event, Emitter<LoginState> emit) async {
-    print("Handling LogoutEvent in LoginBloc: ${this.hashCode}");
-    emit(state.copyWith(
-      currentState: StateTypes.submitting,
-      error: null,
-    ));
-
+    emit(state.copyWith(currentState: StateTypes.submitting, error: null));
     try {
       await _sharedRepository.clearData();
-      print("SharedPreferences cleared successfully");
-      emit(LoginState(
-        currentState: StateTypes.init,
-      ));
-      print("Logout state emitted: currentState = init, authResponse = null");
+      emit(LoginState());
     } catch (e) {
-      print("Error during logout: ${e.toString()}");
       emit(state.copyWith(
         currentState: StateTypes.error,
         error: e.toString(),
@@ -63,44 +58,40 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     }
   }
 
-  // Handle checking login status on app start
   Future<void> _onCheckLoginStatus(CheckLoginStatusEvent event, Emitter<LoginState> emit) async {
-    print("Checking login status in LoginBloc: ${this.hashCode}");
     emit(state.copyWith(currentState: StateTypes.submitting));
-
     try {
       final token = await _sharedRepository.getData("accessToken");
-      if (token != null && token.isNotEmpty && token != "error") {
-        // Assuming AuthResponse can be reconstructed from stored data
-        final userId = await _sharedRepository.getData("userId");
-        final userType = await _sharedRepository.getData("userType");
-        final username = await _sharedRepository.getData("username"); // Add this if stored
+      final userId = await _sharedRepository.getData("userId");
+      final userType = await _sharedRepository.getData("userType");
+      final username = await _sharedRepository.getData("username");
 
-        if (userId != null && userType != null) {
-          final authResponse = AuthResponse.fromJson({
-            "access_token": token,
-            "refresh_token": "", // You might need to store this too if required
-            "user": {
-              "id": int.parse(userId),
-              "userType": userType,
-              "username": username ?? "unknown",
-            },
-          });
-          emit(state.copyWith(
-            currentState: StateTypes.submitted,
-            authResponse: authResponse,
-          ));
-          print("Login status restored: authResponse = $authResponse");
-        } else {
-          emit(state.copyWith(currentState: StateTypes.init));
-          print("No valid user data found, resetting to init");
-        }
+      print("Token: $token, UserId: $userId, UserType: $userType, Username: $username"); // Debug log
+
+      if (token != null && token.isNotEmpty &&
+          userId != null && userId.isNotEmpty &&
+          userType != null && userType.isNotEmpty &&
+          username != null && username.isNotEmpty) {
+        final authResponse = AuthResponse.fromJson({
+          "succeeded": true,
+          "access_token": token,
+          "refresh_token": "",
+          "user": {
+            "id": int.parse(userId),
+            "userType": userType,
+            "username": username,
+          },
+        });
+        emit(state.copyWith(
+          currentState: StateTypes.submitted,
+          authResponse: authResponse,
+        ));
       } else {
-        emit(state.copyWith(currentState: StateTypes.init));
-        print("No valid token found, resetting to init");
+        await _sharedRepository.clearData();
+        emit(LoginState());
       }
     } catch (e) {
-      print("Error checking login status: $e");
+      await _sharedRepository.clearData();
       emit(state.copyWith(
         currentState: StateTypes.error,
         error: e.toString(),
@@ -108,7 +99,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     }
   }
 }
-
 class LoginState {
   final StateTypes currentState;
   final String? error;
@@ -137,10 +127,9 @@ abstract class LoginEvent {}
 
 class SubmitData extends LoginEvent {
   final Map<String, dynamic> model;
-
   SubmitData({required this.model});
 }
 
 class LogoutEvent extends LoginEvent {}
 
-class CheckLoginStatusEvent extends LoginEvent {} // New event
+class CheckLoginStatusEvent extends LoginEvent {}
